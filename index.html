@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Workout Tracker</title>
+  <link rel="manifest" href="./manifest.json">
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card: #151c28;
+      --border: #263147;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0 0 96px 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      user-select: none;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 15, 23, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px 10px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .app-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .sync-badge {
+      font-size: 11.5px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #1e293b;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .sync-badge.ok { color: var(--success); }
+    .sync-badge.busy { color: var(--warn); }
+    .cfg-btn {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .tab-btn {
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 4px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .container { padding: 12px 14px; }
+    .cfg-box {
+      background: #172033;
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .cfg-input {
+      width: 100%;
+      background: #0b0f17;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+    .prog-banner {
+      background: #112233;
+      border: 1px solid #1e3a5f;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .prog-banner-text { font-size: 12.5px; color: #cbd5e1; line-height: 1.35; }
+    .prog-btn {
+      background: var(--success);
+      color: #052e16;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      font-weight: 800;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .card.ready-up { border-color: rgba(16, 185, 129, 0.55); }
+    .ex-title { font-size: 15.5px; font-weight: 700; margin-bottom: 8px; line-height: 1.25; }
+    .ex-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .pill {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #cbd5e1;
+    }
+    .pill.target { background: #1e3a8a; color: #bfdbfe; }
+    .pill.rir { background: #312e81; color: #c7d2fe; }
+    .pill.timer { background: #064e3b; color: #a7f3d0; cursor: pointer; }
+    .notes { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.35; }
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f1520;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .kg-group { display: flex; align-items: center; gap: 6px; }
+    .kg-input {
+      width: 68px;
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .unit-label { font-size: 11.5px; color: var(--muted); max-width: 120px; line-height: 1.2; }
+    .step-btns { display: flex; gap: 5px; }
+    .step-btn {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .delta-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .delta-chip {
+      background: #0f1520;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 0;
+      font-size: 12.5px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+    .delta-chip.active-neg {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+      border-color: var(--warn);
+    }
+    .delta-chip.active-pos {
+      background: rgba(16, 185, 129, 0.22);
+      color: #6ee7b7;
+      border-color: var(--success);
+    }
+    .status-footer {
+      font-size: 12px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      color: #93c5fd;
+    }
+    .status-footer.up { color: #6ee7b7; font-weight: 600; }
+    .timer-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #064e3b;
+      border-top: 2px solid var(--success);
+      padding: 12px 16px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 30;
+    }
+    .timer-time { font-size: 22px; font-weight: 800; color: #ecfdf5; }
+    .timer-stop {
+      background: #047857; color: #fff; border: none;
+      border-radius: 8px; padding: 8px 14px; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="top-bar">
+    <div class="app-title">Workout Tracker</div>
+    <div class="top-actions">
+      <div id="syncBadge" class="sync-badge">Init...</div>
+      <button class="cfg-btn" onclick="toggleConfig()">⚙️</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="selectSession(0)">Push A<br><small>Dom</small></button>
+    <button class="tab-btn" onclick="selectSession(1)">Pull A<br><small>Mar</small></button>
+    <button class="tab-btn" onclick="selectSession(2)">Push B<br><small>Gio</small></button>
+    <button class="tab-btn" onclick="selectSession(3)">Pull B<br><small>Ven</small></button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="cfgBox" class="cfg-box">
+    <div style="font-size:13px;font-weight:700;">URL Web App Google Apps Script (/exec):</div>
+    <input type="url" id="apiUrlInput" class="cfg-input" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="prog-btn" style="width:100%;" onclick="saveApiUrl()">Salva e Sincronizza</button>
+  </div>
+
+  <div class="prog-banner">
+    <div class="prog-banner-text">
+      <strong>Chiusura Settimana:</strong> incrementa i carichi a target (full / +0 / +1) e resetta il delta.
+    </div>
+    <button class="prog-btn" onclick="triggerProgression()">Avanza Target</button>
+  </div>
+  <div id="exerciseList"></div>
+</div>
+
+<div id="timerBar" class="timer-bar">
+  <div>
+    <div style="font-size:11px;color:#a7f3d0;">RECUPERO IN CORSO</div>
+    <div id="timerDisplay" class="timer-time">00:00</div>
+  </div>
+  <button class="timer-stop" onclick="stopTimer()">Chiudi Timer</button>
+</div>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js');
+    });
+  }
+
+  var SESSIONS = [
+    'Push A (Domenica Mattina)',
+    'Pull A (Martedì Sera)',
+    'Push B (Giovedì Mattina)',
+    'Pull B (Venerdì Mattina)'
+  ];
+  var DELTAS = ['-3', '-2', '-1', '+0', 'full', '+1'];
+  var currentSessionIdx = 0;
+  var exercisesData = [];
+  var timerInterval = null;
+
+  function getApiUrl() {
+    return (localStorage.getItem('wt_api_url') || '').trim();
+  }
+
+  function toggleConfig() {
+    var box = document.getElementById('cfgBox');
+    var inp = document.getElementById('apiUrlInput');
+    inp.value = getApiUrl();
+    box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+  }
+
+  function saveApiUrl() {
+    var val = document.getElementById('apiUrlInput').value.trim();
+    if (!val) return;
+    localStorage.setItem('wt_api_url', val);
+    document.getElementById('cfgBox').style.display = 'none';
+    loadInitialData();
+  }
+
+  function setSyncState(text, cls) {
+    var b = document.getElementById('syncBadge');
+    b.textContent = text;
+    b.className = 'sync-badge ' + (cls || '');
+  }
+
+  function apiPost(payload) {
+    var url = getApiUrl();
+    if (!url) {
+      document.getElementById('cfgBox').style.display = 'block';
+      return Promise.reject(new Error('URL API mancante'));
+    }
+    return fetch(url, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    }).then(function(r) { return r.json(); });
+  }
+
+  function loadInitialData() {
+    var cached = localStorage.getItem('wt_cache_v1');
+    if (cached) {
+      try {
+        exercisesData = JSON.parse(cached);
+        renderSession();
+      } catch (e) {}
+    }
+    if (!getApiUrl()) {
+      document.getElementById('cfgBox').style.display = 'block';
+      setSyncState('Configura URL ⚙️', 'busy');
+      return;
+    }
+    setSyncState('Sync...', 'busy');
+    apiPost({ action: 'get' })
+      .then(function(res) {
+        if (res && res.ok && res.exercises) {
+          exercisesData = res.exercises;
+          localStorage.setItem('wt_cache_v1', JSON.stringify(exercisesData));
+          renderSession();
+          setSyncState('Drive Sync OK', 'ok');
+        } else {
+          setSyncState('Errore API', '');
+        }
+      })
+      .catch(function() {
+        setSyncState('Offline / Cache', '');
+      });
+  }
+
+  function selectSession(idx) {
+    currentSessionIdx = idx;
+    var btns = document.querySelectorAll('.tab-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('active', i === idx);
+    }
+    renderSession();
+  }
+
+  function isPositiveDelta(d) {
+    return d === 'full' || d === '+0' || d.indexOf('+') === 0;
+  }
+
+  function renderSession() {
+    var container = document.getElementById('exerciseList');
+    var targetName = SESSIONS[currentSessionIdx];
+    var list = exercisesData.filter(function(x) { return x.seduta === targetName; });
+
+    if (!list.length) {
+      container.innerHTML = '<div class="card">Premi ⚙️ in alto a destra e incolla l\'URL /exec per caricare la scheda.</div>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var ex = list[i];
+      var ready = isPositiveDelta(ex.deltaReps);
+      html += '<div class="card ' + (ready ? 'ready-up' : '') + '">';
+      html += '  <div class="ex-title">' + ex.ordine + '. ' + ex.esercizio + '</div>';
+      html += '  <div class="ex-meta">';
+      html += '    <span class="pill target">' + ex.serie + ' x ' + ex.minReps + '-' + ex.maxReps + '</span>';
+      html += '    <span class="pill rir">' + ex.rirTarget + '</span>';
+      html += '    <span class="pill timer" onclick="startTimer(' + ex.recuperoSec + ')">⏱ ' + ex.recuperoSec + 's</span>';
+      html += '  </div>';
+      html += '  <div class="notes">' + ex.noteTecniche + '</div>';
+      html += '  <div class="control-row">';
+      html += '    <div class="kg-group">';
+      html += '      <input type="number" step="0.5" class="kg-input" value="' + ex.caricoKg + '" onchange="changeKg(\'' + ex.id + '\', this.value)">';
+      html += '      <div class="unit-label">' + ex.notaCarico + '</div>';
+      html += '    </div>';
+      html += '    <div class="step-btns">';
+      html += '      <button class="step-btn" onclick="stepKg(\'' + ex.id + '\', -2.5)">-2.5</button>';
+      html += '      <button class="step-btn" onclick="stepKg(\'' + ex.id + '\', -1)">-1</button>';
+      html += '      <button class="step-btn" onclick="stepKg(\'' + ex.id + '\', 1)">+1</button>';
+      html += '      <button class="step-btn" onclick="stepKg(\'' + ex.id + '\', 2.5)">+2.5</button>';
+      html += '    </div>';
+      html += '  </div>';
+      html += '  <div class="delta-grid">';
+      for (var j = 0; j < DELTAS.length; j++) {
+        var d = DELTAS[j];
+        var isAct = (ex.deltaReps === d);
+        var cls = isAct ? (isPositiveDelta(d) ? 'active-pos' : 'active-neg') : '';
+        html += '<div class="delta-chip ' + cls + '" onclick="setDelta(\'' + ex.id + '\', \'' + d + '\')">' + d + '</div>';
+      }
+      html += '  </div>';
+      html += '  <div class="status-footer ' + (ready ? 'up' : '') + '">' + ex.azione + '</div>';
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function findEx(id) {
+    for (var i = 0; i < exercisesData.length; i++) {
+      if (exercisesData[i].id === id) return exercisesData[i];
+    }
+    return null;
+  }
+
+  function stepKg(id, deltaKg) {
+    var ex = findEx(id);
+    if (!ex) return;
+    var nextVal = Math.max(0, Math.round((Number(ex.caricoKg) + deltaKg) * 100) / 100);
+    changeKg(id, nextVal);
+  }
+
+  function changeKg(id, val) {
+    var ex = findEx(id);
+    if (!ex) return;
+    ex.caricoKg = Number(val) || 0;
+    saveExercise(ex, 'Modifica Carico');
+  }
+
+  function setDelta(id, d) {
+    var ex = findEx(id);
+    if (!ex) return;
+    ex.deltaReps = d;
+    saveExercise(ex, 'Aggiornamento Delta Reps');
+  }
+
+  function saveExercise(ex, evento) {
+    var ready = isPositiveDelta(ex.deltaReps);
+    ex.azione = ready
+      ? 'Target raggiunto (' + ex.deltaReps + '): Aumentare carico (+1/2.5 kg) e ripartire da ' + ex.minReps + ' reps'
+      : 'Mantenere ' + ex.caricoKg + ' kg: colmare il delta (' + ex.deltaReps + ') fino a ' + ex.serie + 'x' + ex.maxReps;
+
+    localStorage.setItem('wt_cache_v1', JSON.stringify(exercisesData));
+    renderSession();
+    setSyncState('Salvataggio...', 'busy');
+
+    apiPost({
+      action: 'update',
+      id: ex.id,
+      caricoKg: ex.caricoKg,
+      deltaReps: ex.deltaReps,
+      notaCarico: ex.notaCarico,
+      logHistory: true,
+      evento: evento
+    }).then(function(res) {
+      setSyncState(res && res.ok ? 'Salvato su Drive' : 'Errore Drive', res && res.ok ? 'ok' : '');
+    }).catch(function() {
+      setSyncState('Offline (Cache OK)', '');
+    });
+  }
+
+  function triggerProgression() {
+    var sedutaName = SESSIONS[currentSessionIdx];
+    setSyncState('Progressione...', 'busy');
+    apiPost({ action: 'progression', seduta: sedutaName })
+      .then(function(res) {
+        if (res && res.ok && res.exercises) {
+          exercisesData = res.exercises;
+          localStorage.setItem('wt_cache_v1', JSON.stringify(exercisesData));
+          renderSession();
+          setSyncState('Avanzati ' + res.updatedCount + ' esercizi', 'ok');
+        }
+      })
+      .catch(function() {
+        setSyncState('Errore rete', '');
+      });
+  }
+
+  function startTimer(sec) {
+    if (timerInterval) clearInterval(timerInterval);
+    var rem = Number(sec) || 90;
+    var bar = document.getElementById('timerBar');
+    var disp = document.getElementById('timerDisplay');
+    bar.style.display = 'flex';
+    function tick() {
+      var m = Math.floor(rem / 60);
+      var s = rem % 60;
+      disp.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+      if (rem <= 0) {
+        clearInterval(timerInterval);
+        disp.textContent = 'RECUPERO COMPLETATO';
+        if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+      }
+      rem--;
+    }
+    tick();
+    timerInterval = setInterval(tick, 1000);
+  }
+
+  function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('timerBar').style.display = 'none';
+  }
+
+  window.onload = loadInitialData;
+</script>
+</body>
+</html>
